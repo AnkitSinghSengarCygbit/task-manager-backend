@@ -41,3 +41,15 @@ Express + MongoDB/Mongoose REST API written in TypeScript. Entry point is `src/s
 - `tsconfig.json` has `"ts-node": { "files": true }` — required so ts-node loads `src/types/express.d.ts` (the global Request augmentation). Without it, `req.user` errors at runtime.
 - Mongoose v9 ships its own types; no `@types/mongoose` needed.
 - `bcryptjs` ships its own types; `@types/bcryptjs` is a stub no-op installed as a devDependency.
+
+## Rules
+
+Never initialize git repos, create .env files, or make infrastructure changes unless explicitly asked. Only modify files directly related to the request.
+
+## Testing / Verification
+
+After any migration or refactor (e.g., JS to TS), always verify the server starts and key endpoints respond before reporting completion. Run `npm run dev` or equivalent and check for errors.
+
+## Code Style
+
+This project uses TypeScript for both frontend and backend. All new files should be .ts/.tsx. Use strict typing — avoid `any` unless absolutely necessary.
