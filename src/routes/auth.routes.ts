@@ -1,24 +1,27 @@
-const express = require("express");
+import express, { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/user.models";
+import authMiddleware from "../middleware/authMiddleware";
+
 const router = express.Router();
-const User = require("../models/user.models");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const authMiddleware = require("../middleware/authMiddleware");
 
 // POST /users/register
-router.post("/register", async (req, res) => {
+router.post("/register", async (req: Request, res: Response) => {
   try {
     let { name, email, password } = req.body;
 
     if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Name is required" });
+      res.status(400).json({ message: "Name is required" });
+      return;
     }
 
     email = email.toLowerCase();
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already exists" });
+      res.status(400).json({ message: "Email already exists" });
+      return;
     }
 
     const user = new User({ name: name.trim(), email, password });
@@ -26,25 +29,30 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: (error as Error).message });
   }
 });
 
 // POST /users/login
-router.post("/login", async (req, res) => {
+router.post("/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) {
+      res.status(400).json({ message: "Invalid credentials" });
+      return;
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      res.status(400).json({ message: "Invalid credentials" });
+      return;
+    }
 
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as string,
       { expiresIn: "1h" }
     );
 
@@ -62,7 +70,7 @@ router.post("/login", async (req, res) => {
 });
 
 // GET /users — all users (authenticated)
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const users = await User.find({}, "name email _id");
     res.json(users);
@@ -71,4 +79,4 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
