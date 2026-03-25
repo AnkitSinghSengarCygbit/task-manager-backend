@@ -1,7 +1,13 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+import mongoose, { Document, Schema } from "mongoose";
+import bcrypt from "bcryptjs";
 
-const userSchema = new mongoose.Schema({
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password: string;
+}
+
+const userSchema = new Schema<IUser>({
   name: {
     type: String,
     required: true,
@@ -21,14 +27,14 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-userSchema.pre("save", async function () {
+userSchema.pre("save", async function (this: IUser) {
   if (!this.isModified("password")) return;
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   } catch (err) {
-    throw new Error(err);
+    throw new Error(String(err));
   }
 });
 
-module.exports = mongoose.model("User", userSchema);
+export default mongoose.model<IUser>("User", userSchema);
