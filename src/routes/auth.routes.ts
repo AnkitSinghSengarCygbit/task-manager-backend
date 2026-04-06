@@ -24,7 +24,7 @@ router.post("/register", async (req: Request, res: Response) => {
       return;
     }
 
-    const user = new User({ name: name.trim(), email, password });
+    const user = new User({ name: name.trim(), email, password, role: 'user' });
     await user.save();
 
     res.status(201).json({ message: "User registered successfully" });
@@ -62,8 +62,45 @@ router.post("/login", async (req: Request, res: Response) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// PATCH /users/change-password — authenticated
+router.patch("/change-password", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ message: "Current and new password are required" });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({ message: "New password must be at least 8 characters" });
+      return;
+    }
+
+    const user = await User.findById(req.user!.userId);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ message: "Current password is incorrect" });
+      return;
+    }
+
+    user.password = newPassword; // pre-save hook hashes it
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -72,7 +109,7 @@ router.post("/login", async (req: Request, res: Response) => {
 // GET /users — all users (authenticated)
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const users = await User.find({}, "name email _id");
+    const users = await User.find({}, "name email _id role");
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
